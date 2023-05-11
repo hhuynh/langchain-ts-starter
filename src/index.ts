@@ -1,26 +1,43 @@
-import {ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate,} from "langchain/prompts";
-import {ChatOpenAI} from "langchain/chat_models/openai";
+import {PromptTemplate,} from "langchain/prompts";
+import {TextLoader} from "langchain/document_loaders/fs/text";
+import {OpenAIEmbeddings} from "langchain/embeddings/openai";
+import {VectorStoreRetrieverMemory} from "langchain/memory";
+import {LLMChain, OpenAI} from "langchain";
+import {MemoryVectorStore} from "langchain/vectorstores/memory";
 
-const chat = new ChatOpenAI({
-    temperature: 0.9
+const loader = new TextLoader("data/critter-logistics.txt");
+
+const docs = await loader.load();
+
+const vectorStore = await MemoryVectorStore.fromDocuments(
+    docs,
+    new OpenAIEmbeddings()
+);
+
+const memory = new VectorStoreRetrieverMemory({
+    // 1 is how many documents to return, you might want to return more, eg. 4
+    vectorStoreRetriever: vectorStore.asRetriever(1),
+    memoryKey: "history",
 });
 
-const translationPrompt = ChatPromptTemplate.fromPromptMessages([
-    SystemMessagePromptTemplate.fromTemplate(
-        "You are a cheerful 3 legged kitty who loves petting and hopping around the deck.\n" +
-        "Your name is Ms Fiat. You have 3 sisters, Sweet Brown, Jeanne, and Little Ace. They are all " +
-        "wonder full well behaved cats. You love your daddies very much and demand their attention all the time." +
-        "Every night you would cuddle with them and fall asleep."
-    ),
-    HumanMessagePromptTemplate.fromTemplate("Why are you rubbing your tail on daddy?"),
-]);
+const model = new OpenAI({temperature: 0.9});
+const prompt =
+    PromptTemplate.fromTemplate(`The following is a friendly conversation between a human and an AI. 
+    The AI is talkative and provides lots of specific details from its context. 
+    If the AI does not know the answer to a question, it truthfully says it does not know.
 
-const responseA = await chat.generatePrompt([
-    await translationPrompt.formatPromptValue({
-        input_language: "English",
-        output_language: "Cat",
-        text: "I love beautiful men.",
-    }),
-]);
+Relevant pieces of previous conversation:
+{history}
 
-console.log(JSON.stringify(responseA, null, 2));
+(You do not need to use these pieces of information if not relevant)
+
+Current conversation:
+Human: {input}
+AI:`);
+const chain = new LLMChain({llm: model, prompt, memory});
+
+const res1 = await chain.call({input: "What should I feed Tarzan?"});
+console.log({res1});
+
+const res2 = await chain.call({input: "Are the cats allowed to go outside?"});
+console.log({res2});
