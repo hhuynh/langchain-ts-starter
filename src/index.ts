@@ -2,7 +2,8 @@ import {PromptTemplate,} from "langchain/prompts";
 import {TextLoader} from "langchain/document_loaders/fs/text";
 import {OpenAIEmbeddings} from "langchain/embeddings/openai";
 import {VectorStoreRetrieverMemory} from "langchain/memory";
-import {LLMChain, OpenAI} from "langchain";
+import {LLMChain} from "langchain/chains";
+import {OpenAI} from "langchain/llms/openai";
 import {MemoryVectorStore} from "langchain/vectorstores/memory";
 
 const loader = new TextLoader("data/critter-logistics.txt");
