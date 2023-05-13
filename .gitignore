@@ -3,5 +3,6 @@ node_modules
 dist
 .turbo
 .idea
-data/critter-logistics.txt
+docs
+
 
